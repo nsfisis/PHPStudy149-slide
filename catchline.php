@@ -2,14 +2,16 @@
 try {
   f(3);
 } catch (Throwable $e) {
-  while ($e = $e->getPrevious()) printf('%c', $e->getLine() + 23);
+  do {
+    printf('%c', $e->getLine() + 21);
+  } while ($e = $e->getPrevious());
   echo "\n";
 }
 function f(int $i) {
-  if ($i < 0) f();
+  if ($i < 0) return;
   try {
     match ($i) {
-      0 => X, // 12行目
+      0 => X, // 14行目
 
 
 
@@ -46,7 +48,7 @@ function f(int $i) {
 
 
 
-      2 => X, // 49行目
+      2 => X, // 51行目
 
 
 
@@ -54,7 +56,7 @@ function f(int $i) {
 
 
 
-      1, 3 => X, // 57行目
+      1, 3 => X, // 59行目
     };
   } finally {
     f($i - 1);

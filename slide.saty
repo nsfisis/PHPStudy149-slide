@@ -36,21 +36,21 @@ let catchline-try = `<?php
 try {
   f(3);
 } catch (Throwable $e) {
-  while ($e = $e->getPrevious()) {
-    printf('%c', $e->getLine() + 23);
-  }
+  do {
+    printf('%c', $e->getLine() + 21);
+  } while ($e = $e->getPrevious());
   echo "\n";
 }`
 
 let catchline-fn-f = `function f(int $i) {
-  if ($i < 0) f();
+  if ($i < 0) return;
   try {
     match ($i) {
-      0 => X, // 12行目
+      0 => X, // 14行目
       // (間の空行は省略)
-      2 => X, // 49行目
+      2 => X, // 51行目
       // (間の空行は省略)
-      1, 3 => X, // 57行目
+      1, 3 => X, // 59行目
     };
   } finally {
     f($i - 1);
@@ -58,24 +58,15 @@ let catchline-fn-f = `function f(int $i) {
 }`
 
 let catchline-fn-f-with-comments = `function f(int $i) {
-  if ($i < 0) f(); // エラー！引数が足りない！
+  if ($i < 0) return;
   try {
     match ($i) {
-      0 => X, // 12行目: エラー！未定義の定数！
+      0 => X, // 14行目: エラー！未定義の定数！
       // (間の空行は省略)
-      2 => X, // 49行目: エラー！未定義の定数！
+      2 => X, // 51行目: エラー！未定義の定数！
       // (間の空行は省略)
-      1, 3 => X, // 57行目: エラー！未定義の定数！
+      1, 3 => X, // 59行目: エラー！未定義の定数！
     };
-  } finally {
-    f($i - 1);
-  }
-}`
-
-let catchline-fn-f-snip = `function f(int $i) {
-  if ($i < 0) f();
-  try {
-    // ...
   } finally {
     f($i - 1);
   }
@@ -83,15 +74,11 @@ let catchline-fn-f-snip = `function f(int $i) {
 
 let error-chain = `<?php
 try {
-  try {
-    throw new \Exception("a");
-  } finally {
-    throw new \Exception("b");
-  }
-} catch (\Exception $e) {
-  echo $e->getMessage(), PHP_EOL; // => b
-  echo $e->getPrevious()->getMessage(), PHP_EOL; // => a
-}`
+  throw new \Exception("a");
+} finally {
+  throw new \Exception("b");
+}
+`
 
 open FigBox
 in
@@ -123,42 +110,12 @@ document '<
 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  +frame{PHPerKaigiとは}<
+  +frame{PHPerKaigiとは、トークン問題とは}<
     +fig-center(vconcat [
       gap 20pt;
-      textbox{2018年から開催されているPHPのカンファレンス};
+      textbox{時間がないので省略。長谷川さんに聞いてください};
       gap 20pt;
-      textbox{今年2023年も、3月23日から25日に開催};
-    ]);
-  >
-
-  +frame{PHPerチャレンジとは}<
-    +fig-center(vconcat [
-      gap 20pt;
-      textbox{PHPerKaigiの企画の1つ};
-      gap 20pt;
-      textbox{\inline-code(`#`);から始まる文字列(トークン)を、};
-      textbox{公式サイトやスポンサーブログから探す};
-      gap 10pt;
-      textbox{例: \inline-code(`#PHP`);};
-    ]);
-  >
-
-  +frame{トークン問題とは}<
-    +fig-center(vconcat [
-      gap 20pt;
-      textbox{PHPerチャレンジのトークンを、PHPのソースコードに隠す};
-      gap 20pt;
-      textbox{実行したり解読したりするとトークンが入手できる};
-    ]);
-  >
-
-  +frame{デジタルサーカスのトークン問題}<
-    +fig-center(vconcat [
-      gap 20pt;
-      textbox{今年も問題を作成しました(全5問)};
-      gap 20pt;
-      textbox{ボツ問になった問題のうちの1問を供養};
+      textbox{変わったPHPプログラムを持ってきたので解説します};
     ]);
   >
 
@@ -186,34 +143,7 @@ document '<
   +frame{Catchline}<
     +code-block-php(catchline-try);
     +p{
-      \inline-code(`f(3)`);からスタート
-    }
-  >
-
-  +frame{Catchline}<
-    +code-block-php(catchline-fn-f-snip);
-    +p{
-      1ずつ減らして、\inline-code(`$i`);が負なら引数なしで呼ぶ
-    }
-  >
-
-  +frame{Catchline}<
-    +p{
-      \listing{
-        * \inline-code(`f(3)`);
-        * \inline-code(`f(2)`);
-        * \inline-code(`f(1)`);
-        * \inline-code(`f(0)`);
-        * \inline-code(`f(-1)`);
-        * \inline-code(`f()`); ここで終わり
-      }
-    }
-  >
-
-  +frame{Catchline}<
-    +code-block-php(catchline-try);
-    +p{
-      \inline-code(`\Throwable::getPrevious()`);を順に辿り、(エラーの発生した行数+23)を
+      \inline-code(`\Throwable::getPrevious()`);を順に辿り、(エラーの発生した行数+21)を
     }
     +p{
       ASCIIコード\text-color(Color.gray(0.75)){[1]}と見做して出力
@@ -228,13 +158,10 @@ document '<
       \inline-code(`\Throwable::getPrevious()`);
     }
     +p{
-      このエラーの1つ前のエラー(=大本の原因)
+      発生したエラーの1つ前のエラー(=大本の原因)
     }
     +p{
-      \listing{
-        * エラー処理中に別のエラーが起きたとき、元々のエラーを保存する
-        * 内部利用しているライブラリが投げた例外クラスを、自分で定義した例外クラスでラップする
-      }
+      通常は例外クラスのコンストラクタに渡して設定する
     }
   >
 
@@ -252,7 +179,7 @@ document '<
   +frame{Catchline}<
     +code-block-php(catchline-try);
     +p{
-      (エラーの発生した行数+23)をASCIIコードと見做して出力
+      (エラーの発生した行数+21)をASCIIコードと見做して出力
     }
   >
 
@@ -263,9 +190,9 @@ document '<
   +frame{Catchline}<
     +p{
       \listing{
-        * 12 + 23 = 35 (\inline-code(`#`);)
-        * 49 + 23 = 72 (\inline-code(`H`);)
-        * 57 + 23 = 80 (\inline-code(`P`);)
+        * 14 + 21 = 35 (\inline-code(`#`);)
+        * 51 + 21 = 72 (\inline-code(`H`);)
+        * 59 + 21 = 80 (\inline-code(`P`);)
       }
     }
     +p{
